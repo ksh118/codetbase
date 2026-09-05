@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>codetbase Portal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    
+    .card { background: #1e293b; padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; }
+    .card.admin-card { max-width: 500px; }
+    
+    h2 { margin-bottom: 1.5rem; color: #38bdf8; font-size: 1.6rem; }
+    .badge { display: inline-block; padding: 4px 10px; background: #0284c7; color: #fff; font-size: 0.75rem; border-radius: 20px; margin-bottom: 1rem; }
+    
+    .input-group { margin-bottom: 1rem; text-align: left; }
+    label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 0.4rem; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 0.95rem; outline: none; }
+    input:focus { border-color: #38bdf8; }
+    
+    button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #0284c7; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
+    button:hover { background: #0369a1; }
+    button.secondary { background: #475569; margin-top: 0.5rem; }
+    button.secondary:hover { background: #334155; }
+    
+    .hidden { display: none !important; }
+    .info-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4; }
+    .divider { height: 1px; background: #334155; margin: 1.5rem 0; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 메인 로그인 화면 -->
+  <div class="card" id="loginCard">
+    <h2>codetbase</h2>
+    <p class="info-text">아이디와 비밀번호를 입력하여 로그인하세요.</p>
+    
+    <div class="input-group">
+      <label>아이디</label>
+      <input type="text" id="loginId" placeholder="예: user1">
+    </div>
+    <div class="input-group">
+      <label>비밀번호</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    
+    <button onclick="login()">로그인</button>
+  </div>
+
+  <!-- 2. 일반 사용자 화면 -->
+  <div class="card hidden" id="userDashboard">
+    <span class="badge">일반 사용자</span>
+    <h2>환영합니다!</h2>
+    <p class="info-text" id="userIdDisplay"></p>
+    
+    <button onclick="logout()">로그아웃</button>
+  </div>
+
+  <!-- 3. 관리자 전용 화면 -->
+  <div class="card admin-card hidden" id="adminDashboard">
+    <span class="badge" style="background: #e11d48;">관리자 패널</span>
+    <h2>계정 생성 센터</h2>
+    <p class="info-text">새로운 사용자의 아이디와 비밀번호를 생성합니다.</p>
+    
+    <div class="input-group">
+      <label>생성할 아이디</label>
+      <input type="text" id="newId" placeholder="예: user2">
+    </div>
+    <div class="input-group">
+      <label>비밀번호 (6자리 이상)</label>
+      <input type="text" id="newPassword" placeholder="예: codet1234!">
+    </div>
+    
+    <button onclick="createAccountByAdmin()">계정 생성하기</button>
+    
+    <div class="divider"></div>
+    <button class="secondary" onclick="logout()">관리자 로그아웃</button>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    signOut, 
+    onAuthStateChanged,
+    createUserWithEmailAndPassword 
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCZiMuJmza3qBfzp-QLaLxolgFIXZPSUzU",
+    authDomain: "codetbase-3afea.firebaseapp.com",
+    projectId: "codetbase-3afea",
+    storageBucket: "codetbase-3afea.firebasestorage.app",
+    messagingSenderId: "560932432321",
+    appId: "1:560932432321:web:94f0df7f19afa1db8d2740",
+    measurementId: "G-EV5HXEE221"
+  };
+
+  const mainApp = initializeApp(firebaseConfig, "MainApp");
+  const auth = getAuth(mainApp);
+
+  const DOMAIN = "@codetbase.com";
+  const ADMIN_IDS = ["admin@codetbase.com", "admin"];
+
+  window.login = async () => {
+    const rawId = document.getElementById('loginId').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    if (!rawId || !password) return alert("아이디와 비밀번호를 입력해주세요.");
+
+    const email = rawId.includes('@') ? rawId : rawId + DOMAIN;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      alert("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
+    }
+  };
+
+  window.logout = () => {
+    signOut(auth).then(() => {
+      document.getElementById('loginId').value = '';
+      document.getElementById('loginPassword').value = '';
+    });
+  };
+
+  window.createAccountByAdmin = async () => {
+    const rawId = document.getElementById('newId').value.trim();
+    const newPassword = document.getElementById('newPassword').value.trim();
+
+    if (!rawId || !newPassword) return alert("아이디와 비밀번호를 입력해주세요.");
+    if (newPassword.length < 6) return alert("비밀번호는 최소 6자리 이상이어야 합니다.");
+
+    const newEmail = rawId.includes('@') ? rawId : rawId + DOMAIN;
+
+    try {
+      const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+      const secondaryAuth = getAuth(secondaryApp);
+
+      await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPassword);
+      await signOut(secondaryAuth);
+
+      alert(`계정 생성 성공!\n아이디: ${rawId}\n비밀번호: ${newPassword}`);
+      
+      document.getElementById('newId').value = '';
+      document.getElementById('newPassword').value = '';
+    } catch (error) {
+      if (error.code === 'auth/email-already-in-use') {
+        alert("이미 존재하는 아이디입니다.");
+      } else {
+        alert("계정 생성 오류: " + error.message);
+      }
+    }
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    const loginCard = document.getElementById('loginCard');
+    const userDashboard = document.getElementById('userDashboard');
+    const adminDashboard = document.getElementById('adminDashboard');
+
+    if (user) {
+      loginCard.classList.add('hidden');
+      const userId = user.email.split('@')[0];
+
+      if (ADMIN_IDS.includes(user.email) || ADMIN_IDS.includes(userId)) {
+        adminDashboard.classList.remove('hidden');
+        userDashboard.classList.add('hidden');
+      } else {
+        userDashboard.classList.remove('hidden');
+        adminDashboard.classList.add('hidden');
+        document.getElementById('userIdDisplay').innerText = `'${userId}' 계정으로 로그인됨`;
+      }
+    } else {
+      loginCard.classList.remove('hidden');
+      userDashboard.classList.add('hidden');
+      adminDashboard.classList.add('hidden');
+    }
+  });
+</script>
+
+</body>
+</html>
