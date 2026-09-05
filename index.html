@@ -6,13 +6,15 @@
   <title>codetbase Portal</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
     
     .card { background: #1e293b; padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; }
-    .card.admin-card { max-width: 500px; }
+    
+    #dashboard { display: none; width: 100%; max-width: 1200px; min-height: 100vh; padding: 20px; flex-direction: column; }
     
     h2 { margin-bottom: 1.5rem; color: #38bdf8; font-size: 1.6rem; }
     .badge { display: inline-block; padding: 4px 10px; background: #0284c7; color: #fff; font-size: 0.75rem; border-radius: 20px; margin-bottom: 1rem; }
+    .badge.admin { background: #e11d48; }
     
     .input-group { margin-bottom: 1rem; text-align: left; }
     label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 0.4rem; }
@@ -21,21 +23,48 @@
     
     button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #0284c7; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
     button:hover { background: #0369a1; }
-    button.secondary { background: #475569; margin-top: 0.5rem; }
+    button.secondary { background: #475569; }
     button.secondary:hover { background: #334155; }
-    
+    button.danger { background: #ef4444; }
+    button.danger:hover { background: #dc2626; }
+
     .hidden { display: none !important; }
     .info-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4; }
-    .divider { height: 1px; background: #334155; margin: 1.5rem 0; }
+
+    .dash-header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 20px; }
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .nav-tabs button { width: auto; padding: 8px 16px; font-size: 0.9rem; background: #334155; }
+    .nav-tabs button.active { background: #0284c7; }
+
+    /* 업로드 박스 및 프로그레스 바 */
+    .upload-box { background: #1e293b; padding: 20px; border-radius: 12px; border: 2px dashed #334155; text-align: center; margin-bottom: 20px; }
+    .progress-container { width: 100%; background: #0f172a; border-radius: 8px; overflow: hidden; margin-top: 10px; height: 14px; display: none; }
+    .progress-bar { width: 0%; height: 100%; background: #38bdf8; transition: width 0.1s; }
+
+    /* 스마트폰 갤러리형 그리드 */
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+    .gallery-item { background: #1e293b; border-radius: 10px; overflow: hidden; border: 1px solid #334155; position: relative; cursor: pointer; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+    .gallery-item img, .gallery-item video { width: 100%; height: 100%; object-fit: cover; }
+    .gallery-item .file-badge { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.7); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: #fff; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* 폴더 보기 그리드 */
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+    .folder-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; }
+    .folder-card:hover { border-color: #38bdf8; transform: translateY(-3px); }
+    .folder-card span { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+    /* 모달 팝업 */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+    .modal-content { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 500px; width: 100%; border: 1px solid #334155; text-align: center; position: relative; }
+    .modal-content img, .modal-content video { max-width: 100%; max-height: 60vh; border-radius: 8px; margin-bottom: 15px; }
+    .modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; width: auto; padding: 0; }
   </style>
 </head>
 <body>
 
-  <!-- 1. 메인 로그인 화면 -->
   <div class="card" id="loginCard">
     <h2>codetbase</h2>
     <p class="info-text">아이디와 비밀번호를 입력하여 로그인하세요.</p>
-    
     <div class="input-group">
       <label>아이디</label>
       <input type="text" id="loginId" placeholder="예: user1">
@@ -44,50 +73,79 @@
       <label>비밀번호</label>
       <input type="password" id="loginPassword" placeholder="••••••••">
     </div>
-    
     <button onclick="login()">로그인</button>
   </div>
 
-  <!-- 2. 일반 사용자 화면 -->
-  <div class="card hidden" id="userDashboard">
-    <span class="badge">일반 사용자</span>
-    <h2>환영합니다!</h2>
-    <p class="info-text" id="userIdDisplay"></p>
-    
-    <button onclick="logout()">로그아웃</button>
+  <div id="dashboard">
+    <div class="dash-header">
+      <div>
+        <span class="badge" id="roleBadge">일반 사용자</span>
+        <h3 id="welcomeText" style="font-size: 1.1rem; margin-top: 5px;">환영합니다</h3>
+      </div>
+      <button class="secondary" style="width: auto; padding: 8px 16px;" onclick="logout()">로그아웃</button>
+    </div>
+
+    <div class="card admin-card hidden" id="adminPanel" style="max-width: 100%; margin-bottom: 20px; text-align: left;">
+      <h3 style="color: #e11d48; margin-bottom: 10px;">👑 관리자 패널: 새 계정 발급</h3>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" id="newId" placeholder="생성할 아이디 (예: user2)" style="flex: 1; min-width: 200px;">
+        <input type="text" id="newPassword" placeholder="초기 비밀번호 (6자리 이상)" style="flex: 1; min-width: 200px;">
+        <button onclick="createAccountByAdmin()" style="width: auto; padding: 0 20px; margin-top: 0;">계정 생성</button>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button id="tabAll" class="active" onclick="switchTab('all')">전체 파일 보기</button>
+      <button id="tabFolders" onclick="switchTab('folders')">폴더별 보기</button>
+    </div>
+
+    <div class="upload-box">
+      <p style="margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem;">스마트폰 저장소로 보낼 파일을 선택하세요.</p>
+      <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
+      <button onclick="document.getElementById('fileInput').click()" style="max-width: 200px; margin: 0 auto;">파일 선택 및 업로드</button>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div id="allFilesView">
+      <div class="gallery-grid" id="galleryGrid"></div>
+      <button id="loadMoreBtn" class="secondary" style="margin-top: 20px;" onclick="loadMoreFiles()">사진 더보기 +20</button>
+    </div>
+
+    <div id="foldersView" class="hidden">
+      <div class="folder-grid" id="folderGrid"></div>
+    </div>
+
+    <div id="folderDetailView" class="hidden">
+      <button class="secondary" style="width: auto; margin-bottom: 15px; padding: 6px 12px;" onclick="backToFolders()">← 폴더 목록으로</button>
+      <h3 id="currentFolderName" style="margin-bottom: 15px; color: #38bdf8;"></h3>
+      <div class="gallery-grid" id="folderGalleryGrid"></div>
+    </div>
   </div>
 
-  <!-- 3. 관리자 전용 화면 -->
-  <div class="card admin-card hidden" id="adminDashboard">
-    <span class="badge" style="background: #e11d48;">관리자 패널</span>
-    <h2>계정 생성 센터</h2>
-    <p class="info-text">새로운 사용자의 아이디와 비밀번호를 생성합니다.</p>
-    
-    <div class="input-group">
-      <label>생성할 아이디</label>
-      <input type="text" id="newId" placeholder="예: user2">
+  <div class="modal" id="fileModal" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModalDirect()">×</button>
+      <div id="modalMediaContainer"></div>
+      <p id="modalUploader" style="margin: 10px 0; font-size: 0.9rem; color: #94a3b8;"></p>
+      <div style="display: flex; gap: 10px;">
+        <a id="modalDownloadBtn" download style="flex: 1;"><button>저장 / 다운로드</button></a>
+        <button id="modalDeleteBtn" class="danger hidden" onclick="deleteCurrentFile()" style="flex: 1;">삭제</button>
+      </div>
     </div>
-    <div class="input-group">
-      <label>비밀번호 (6자리 이상)</label>
-      <input type="text" id="newPassword" placeholder="예: codet1234!">
-    </div>
-    
-    <button onclick="createAccountByAdmin()">계정 생성하기</button>
-    
-    <div class="divider"></div>
-    <button class="secondary" onclick="logout()">관리자 로그아웃</button>
   </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { 
-    getAuth, 
-    signInWithEmailAndPassword, 
-    signOut, 
-    onAuthStateChanged,
-    createUserWithEmailAndPassword 
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword 
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { 
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit, startAfter, where 
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+  // Firebase Config
   const firebaseConfig = {
     apiKey: "AIzaSyCZiMuJmza3qBfzp-QLaLxolgFIXZPSUzU",
     authDomain: "codetbase-3afea.firebaseapp.com",
@@ -98,86 +156,271 @@
     measurementId: "G-EV5HXEE221"
   };
 
-  const mainApp = initializeApp(firebaseConfig, "MainApp");
-  const auth = getAuth(mainApp);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // 스마트폰 연결 주소 (Localtonet)
+  const PHONE_SERVER_URL = "https://rbgfzsnvdm.localto.net";
 
   const DOMAIN = "@codetbase.com";
-  const ADMIN_IDS = ["admin@codetbase.com", "admin"];
+  const ADMIN_EMAILS = ["admin@codetbase.com", "admin"];
 
+  let currentUser = null;
+  let allFilesData = [];
+  let currentModalFile = null;
+  let lastVisibleDoc = null;
+  const PAGE_SIZE = 20;
+
+  // 로그인
   window.login = async () => {
     const rawId = document.getElementById('loginId').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
-
     if (!rawId || !password) return alert("아이디와 비밀번호를 입력해주세요.");
-
     const email = rawId.includes('@') ? rawId : rawId + DOMAIN;
-
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
+    } catch (e) {
       alert("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
     }
   };
 
-  window.logout = () => {
-    signOut(auth).then(() => {
-      document.getElementById('loginId').value = '';
-      document.getElementById('loginPassword').value = '';
-    });
-  };
+  window.logout = () => signOut(auth);
 
+  // 관리자 계정 생성
   window.createAccountByAdmin = async () => {
     const rawId = document.getElementById('newId').value.trim();
     const newPassword = document.getElementById('newPassword').value.trim();
-
     if (!rawId || !newPassword) return alert("아이디와 비밀번호를 입력해주세요.");
-    if (newPassword.length < 6) return alert("비밀번호는 최소 6자리 이상이어야 합니다.");
-
     const newEmail = rawId.includes('@') ? rawId : rawId + DOMAIN;
-
     try {
       const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
       const secondaryAuth = getAuth(secondaryApp);
-
       await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPassword);
       await signOut(secondaryAuth);
-
-      alert(`계정 생성 성공!\n아이디: ${rawId}\n비밀번호: ${newPassword}`);
-      
+      alert(`계정 생성 완료! 아이디: ${rawId}`);
       document.getElementById('newId').value = '';
       document.getElementById('newPassword').value = '';
-    } catch (error) {
-      if (error.code === 'auth/email-already-in-use') {
-        alert("이미 존재하는 아이디입니다.");
-      } else {
-        alert("계정 생성 오류: " + error.message);
-      }
+    } catch (e) {
+      alert("오류: " + e.message);
     }
   };
 
-  onAuthStateChanged(auth, (user) => {
-    const loginCard = document.getElementById('loginCard');
-    const userDashboard = document.getElementById('userDashboard');
-    const adminDashboard = document.getElementById('adminDashboard');
-
+  // 로그인 상태 세션 관리
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
     if (user) {
-      loginCard.classList.add('hidden');
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'flex';
       const userId = user.email.split('@')[0];
+      const isAdmin = ADMIN_EMAILS.includes(user.email) || ADMIN_EMAILS.includes(userId);
 
-      if (ADMIN_IDS.includes(user.email) || ADMIN_IDS.includes(userId)) {
-        adminDashboard.classList.remove('hidden');
-        userDashboard.classList.add('hidden');
+      const badge = document.getElementById('roleBadge');
+      if (isAdmin) {
+        badge.innerText = "관리자";
+        badge.className = "badge admin";
+        document.getElementById('adminPanel').classList.remove('hidden');
       } else {
-        userDashboard.classList.remove('hidden');
-        adminDashboard.classList.add('hidden');
-        document.getElementById('userIdDisplay').innerText = `'${userId}' 계정으로 로그인됨`;
+        badge.innerText = "일반 사용자";
+        badge.className = "badge";
       }
+      document.getElementById('welcomeText').innerText = `${userId} 님 환영합니다.`;
+      loadInitialFiles();
     } else {
-      loginCard.classList.remove('hidden');
-      userDashboard.classList.add('hidden');
-      adminDashboard.classList.add('hidden');
+      document.getElementById('loginCard').style.display = 'block';
+      document.getElementById('dashboard').style.display = 'none';
     }
   });
+
+  // 스마트폰 저장소(shttps)로 직접 파일 업로드
+  window.uploadFile = async () => {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '30%';
+
+    try {
+      const response = await fetch(`${PHONE_SERVER_URL}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      progressBar.style.width = '100%';
+
+      // 폰 전송 완료 후 Firebase에 정보 기록
+      await addDoc(collection(db, "files"), {
+        name: file.name,
+        url: `${PHONE_SERVER_URL}/${file.name}`,
+        uploader: currentUser.email.split('@')[0],
+        createdAt: Date.now()
+      });
+
+      alert("스마트폰 저장소로 파일 업로드가 완료되었습니다!");
+      loadInitialFiles();
+    } catch (error) {
+      alert("스마트폰 서버 전송 실패: 폰의 shttps 앱과 Localtonet 터널이 실행 중인지 확인하세요.");
+    } finally {
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+        progressBar.style.width = '0%';
+        fileInput.value = '';
+      }, 500);
+    }
+  };
+
+  // 20개씩 불러오기
+  async function loadInitialFiles() {
+    const q = query(collection(db, "files"), orderBy("createdAt", "desc"), limit(PAGE_SIZE));
+    const querySnapshot = await getDocs(q);
+    allFilesData = [];
+    querySnapshot.forEach((docSnap) => {
+      allFilesData.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+    renderGallery(allFilesData, 'galleryGrid');
+  }
+
+  window.loadMoreFiles = async () => {
+    if (!lastVisibleDoc) return alert("더 이상 불러올 파일이 없습니다.");
+    const q = query(collection(db, "files"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(PAGE_SIZE));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+      alert("모든 파일을 불러왔습니다.");
+      return;
+    }
+    querySnapshot.forEach((docSnap) => {
+      allFilesData.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+    renderGallery(allFilesData, 'galleryGrid');
+  };
+
+  // 갤러리 그리드 출력
+  function renderGallery(files, elementId) {
+    const grid = document.getElementById(elementId);
+    grid.innerHTML = '';
+    files.forEach(file => {
+      const item = document.createElement('div');
+      item.className = 'gallery-item';
+      
+      const isVideo = file.name.match(/\.(mp4|webm|ogg|mov)$/i);
+      if (isVideo) {
+        item.innerHTML = `<video src="${file.url}"></video><div class="file-badge">${file.name}</div>`;
+      } else {
+        item.innerHTML = `<img src="${file.url}" loading="lazy"><div class="file-badge">${file.name}</div>`;
+      }
+      item.onclick = () => openModal(file);
+      grid.appendChild(item);
+    });
+  }
+
+  // 모달 팝업
+  function openModal(file) {
+    currentModalFile = file;
+    const isVideo = file.name.match(/\.(mp4|webm|ogg|mov)$/i);
+    const container = document.getElementById('modalMediaContainer');
+    container.innerHTML = isVideo ? `<video src="${file.url}" controls autoplay></video>` : `<img src="${file.url}">`;
+
+    document.getElementById('modalUploader').innerText = `올린 사람: ${file.uploader}`;
+    document.getElementById('modalDownloadBtn').href = file.url;
+
+    const userId = currentUser.email.split('@')[0];
+    const isAdmin = ADMIN_EMAILS.includes(currentUser.email) || ADMIN_EMAILS.includes(userId);
+
+    const deleteBtn = document.getElementById('modalDeleteBtn');
+    if (file.uploader === userId || isAdmin) {
+      deleteBtn.classList.remove('hidden');
+    } else {
+      deleteBtn.classList.add('hidden');
+    }
+
+    document.getElementById('fileModal').style.display = 'flex';
+  }
+
+  window.closeModalDirect = () => { document.getElementById('fileModal').style.display = 'none'; };
+  window.closeModal = (e) => { if (e.target.id === 'fileModal') closeModalDirect(); };
+
+  // 삭제 기능
+  window.deleteCurrentFile = async () => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    try {
+      await deleteDoc(doc(db, "files", currentModalFile.id));
+      closeModalDirect();
+      loadInitialFiles();
+    } catch (e) {
+      alert("삭제 실패: " + e.message);
+    }
+  };
+
+  // 탭 전환
+  window.switchTab = (tab) => {
+    document.getElementById('tabAll').classList.remove('active');
+    document.getElementById('tabFolders').classList.remove('active');
+    document.getElementById('allFilesView').classList.add('hidden');
+    document.getElementById('foldersView').classList.add('hidden');
+    document.getElementById('folderDetailView').classList.add('hidden');
+
+    if (tab === 'all') {
+      document.getElementById('tabAll').classList.add('active');
+      document.getElementById('allFilesView').classList.remove('hidden');
+    } else if (tab === 'folders') {
+      document.getElementById('tabFolders').classList.add('active');
+      document.getElementById('foldersView').classList.remove('hidden');
+      loadFolders();
+    }
+  };
+
+  // 폴더별 보기
+  async function loadFolders() {
+    const querySnapshot = await getDocs(collection(db, "files"));
+    const uploaders = new Set();
+    querySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.uploader) uploaders.add(data.uploader);
+    });
+
+    const folderGrid = document.getElementById('folderGrid');
+    folderGrid.innerHTML = '';
+
+    if (uploaders.size === 0) {
+      folderGrid.innerHTML = '<p style="color:#94a3b8; grid-column: 1/-1; text-align: center;">업로드된 폴더가 없습니다.</p>';
+      return;
+    }
+
+    uploaders.forEach(user => {
+      const card = document.createElement('div');
+      card.className = 'folder-card';
+      card.innerHTML = `<span>📁</span><strong>${user}</strong>`;
+      card.onclick = () => openFolder(user);
+      folderGrid.appendChild(card);
+    });
+  }
+
+  async function openFolder(username) {
+    document.getElementById('foldersView').classList.add('hidden');
+    document.getElementById('folderDetailView').classList.remove('hidden');
+    document.getElementById('currentFolderName').innerText = `📁 ${username} 님의 폴더`;
+
+    const q = query(collection(db, "files"), where("uploader", "==", username));
+    const querySnapshot = await getDocs(q);
+    const userFiles = [];
+    querySnapshot.forEach(docSnap => {
+      userFiles.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    renderGallery(userFiles, 'folderGalleryGrid');
+  }
+
+  window.backToFolders = () => {
+    document.getElementById('folderDetailView').classList.add('hidden');
+    document.getElementById('foldersView').classList.remove('hidden');
+  };
 </script>
 
 </body>
