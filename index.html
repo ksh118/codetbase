@@ -238,11 +238,10 @@
     const file = fileInput.files[0];
     if (!file) return;
 
-    // shttps는 WebDAV 서버라서 POST /upload(멀티파트) 방식이 아니라
-    // PUT 메소드로 파일 데이터를 그대로 올려야 함.
-    // 같은 이름 파일이 덮어써지지 않도록 시간 값을 파일명 앞에 붙임.
-    const uniqueName = `${Date.now()}_${file.name}`;
-    const uploadUrl = `${PHONE_SERVER_URL}/${uniqueName}`;
+    // Termux(Flask) 서버는 /upload 경로로 멀티파트 POST를 받아서
+    // 저장된 실제 파일명(중복 방지용 타임스탬프 포함)을 JSON으로 응답해준다.
+    const formData = new FormData();
+    formData.append('file', file);
 
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
@@ -250,22 +249,25 @@
     progressBar.style.width = '30%';
 
     try {
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file
+      const response = await fetch(`${PHONE_SERVER_URL}/upload`, {
+        method: 'POST',
+        body: formData
       });
 
       if (!response.ok) {
         throw new Error(`서버 응답 코드 ${response.status}`);
       }
 
+      const result = await response.json();
+      const savedName = result.name;
+      const fileUrl = `${PHONE_SERVER_URL}/files/${encodeURIComponent(savedName)}`;
+
       progressBar.style.width = '100%';
 
       // 폰 전송 완료 후 Firebase에 정보 기록
       await addDoc(collection(db, "files"), {
-        name: uniqueName,
-        url: uploadUrl,
+        name: savedName,
+        url: fileUrl,
         uploader: currentUser.email.split('@')[0],
         createdAt: Date.now()
       });
@@ -273,7 +275,7 @@
       alert("스마트폰 저장소로 파일 업로드가 완료되었습니다!");
       loadInitialFiles();
     } catch (error) {
-      alert(`스마트폰 서버 전송 실패 (${error.message}). 폰의 shttps 앱(WebDAV, Allow file modification, CORS 체크)과 Localtonet 터널이 켜져 있는지, 주소가 https://rbgfzsnvdm.localto.net 로 맞는지 확인하세요.`);
+      alert(`스마트폰 서버 전송 실패 (${error.message}). Termux에서 python server.py 창이 켜져 있는지, Localtonet 터널이 8080 포트로 켜져 있는지 확인하세요.`);
     } finally {
       setTimeout(() => {
         progressContainer.style.display = 'none';
