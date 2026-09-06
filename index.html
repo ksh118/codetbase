@@ -5,72 +5,178 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>codetbase Portal</title>
   <style>
+    :root {
+      --bg: #191919;
+      --bg-raised: #202020;
+      --bg-hover: #2a2a2a;
+      --bg-input: #252525;
+      --border: #2f2f2f;
+      --border-soft: #272727;
+      --text: #e9e9e7;
+      --text-muted: #9b9b9b;
+      --text-faint: #6b6b6b;
+      --accent: #529cca;
+      --accent-soft: rgba(82, 156, 202, 0.14);
+      --accent-text: #7cb8dd;
+      --danger: #e2685f;
+      --danger-soft: rgba(226, 104, 95, 0.14);
+      --admin: #d99a4e;
+      --admin-soft: rgba(217, 154, 78, 0.14);
+      --r-sm: 6px;
+      --r-md: 8px;
+      --r-lg: 12px;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
 
-    .card { background: #1e293b; padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-    #dashboard { display: none; width: 100%; max-width: 1200px; min-height: 100vh; padding: 20px; flex-direction: column; }
+    /* 로그인 카드 */
+    .card {
+      background: var(--bg-raised);
+      padding: 2.25rem 2rem;
+      border-radius: var(--r-lg);
+      width: 100%;
+      max-width: 380px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .card h2 { text-align: left; }
 
-    h2 { margin-bottom: 1.5rem; color: #38bdf8; font-size: 1.6rem; }
-    .badge { display: inline-block; padding: 4px 10px; background: #0284c7; color: #fff; font-size: 0.75rem; border-radius: 20px; margin-bottom: 1rem; }
-    .badge.admin { background: #e11d48; }
+    #dashboard { display: none; width: 100%; max-width: 880px; min-height: 100vh; padding: 20px 16px 60px; flex-direction: column; }
 
-    .input-group { margin-bottom: 1rem; text-align: left; }
-    label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 0.4rem; }
-    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 0.95rem; outline: none; }
-    input:focus { border-color: #38bdf8; }
+    h2 { margin-bottom: 0.4rem; color: var(--text); font-size: 1.3rem; font-weight: 600; letter-spacing: -0.01em; }
+    .badge { display: inline-block; padding: 3px 10px; background: var(--accent-soft); color: var(--accent-text); font-size: 0.72rem; font-weight: 500; border-radius: 20px; margin-bottom: 0.75rem; }
+    .badge.admin { background: var(--admin-soft); color: var(--admin); }
 
-    button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #0284c7; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
-    button:hover { background: #0369a1; }
-    button.secondary { background: #475569; }
-    button.secondary:hover { background: #334155; }
-    button.danger { background: #ef4444; }
-    button.danger:hover { background: #dc2626; }
+    .input-group { margin-bottom: 0.9rem; text-align: left; }
+    label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem; }
+    input {
+      width: 100%; padding: 10px 12px; border-radius: var(--r-sm);
+      border: 1px solid var(--border); background: var(--bg-input);
+      color: var(--text); font-size: 0.9rem; outline: none; transition: border-color 0.15s;
+    }
+    input::placeholder { color: var(--text-faint); }
+    input:focus { border-color: var(--accent); }
 
-    a.admin-link { display: inline-block; margin-top: 8px; font-size: 0.8rem; color: #fca5a5; text-decoration: none; }
+    button {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--r-sm);
+      background: var(--bg-raised); color: var(--text); font-size: 0.88rem; font-weight: 500;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s; margin-top: 0.5rem;
+    }
+    button:hover { background: var(--bg-hover); }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+
+    #loginCard button, #uploadTriggerBtn {
+      background: var(--accent); border-color: var(--accent); color: #0f1f28; font-weight: 600;
+    }
+    #loginCard button:hover, #uploadTriggerBtn:hover:not(:disabled) { background: #6bb0d8; }
+
+    button.secondary { background: var(--bg-raised); border-color: var(--border); color: var(--text-muted); }
+    button.secondary:hover { background: var(--bg-hover); color: var(--text); }
+    button.danger { background: var(--danger-soft); border-color: var(--danger-soft); color: var(--danger); }
+    button.danger:hover { background: rgba(226, 104, 95, 0.22); }
+
+    a.admin-link { display: inline-block; margin-top: 4px; font-size: 0.78rem; color: var(--admin); text-decoration: none; }
     a.admin-link:hover { text-decoration: underline; }
 
     .hidden { display: none !important; }
-    .info-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4; }
+    .info-text { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.4rem; line-height: 1.5; }
 
-    .dash-header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 20px; }
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    .nav-tabs button { width: auto; padding: 8px 16px; font-size: 0.9rem; background: #334155; }
-    .nav-tabs button.active { background: #0284c7; }
+    .dash-header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: transparent; padding: 4px 2px 18px; border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 18px; gap: 12px;
+    }
+    .dash-header button { width: auto; }
+
+    .nav-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .nav-tabs button {
+      width: auto; padding: 6px 12px; font-size: 0.85rem; background: transparent;
+      border: 1px solid transparent; color: var(--text-muted); margin-top: 0; font-weight: 500;
+    }
+    .nav-tabs button:hover { background: var(--bg-hover); color: var(--text); }
+    .nav-tabs button.active { background: var(--bg-raised); border-color: var(--border); color: var(--text); }
 
     /* 그룹 바 */
-    .group-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
-    .group-bar .group-label { color: #94a3b8; font-size: 0.85rem; white-space: nowrap; }
-    .group-btn { width: auto; padding: 6px 14px; font-size: 0.85rem; margin-top: 0; background: #334155; }
-    .group-btn.active-group { background: #0284c7; }
-    .current-group-text { color: #38bdf8; font-size: 0.85rem; font-weight: bold; margin-left: auto; }
+    .group-bar {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 10px 14px; margin-bottom: 16px;
+    }
+    .group-bar .group-label { color: var(--text-muted); font-size: 0.82rem; white-space: nowrap; }
+    .group-btn {
+      width: auto; padding: 5px 12px; font-size: 0.8rem; margin-top: 0;
+      background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .group-btn:hover { background: var(--bg-hover); color: var(--text); }
+    .group-btn.active-group { background: var(--accent-soft); border-color: var(--accent-soft); color: var(--accent-text); }
+    .current-group-text { color: var(--text-faint); font-size: 0.8rem; font-weight: 500; margin-left: auto; }
 
-    .modal-meta { text-align: left; background: #0f172a; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; }
-    .modal-meta a { color: #38bdf8; }
+    .modal-meta { text-align: left; background: var(--bg-input); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 12px; font-size: 0.83rem; color: var(--text-muted); line-height: 1.6; }
+    .modal-meta a { color: var(--accent-text); }
 
     /* 업로드 박스 및 프로그레스 바 */
-    .upload-box { background: #1e293b; padding: 20px; border-radius: 12px; border: 2px dashed #334155; text-align: center; margin-bottom: 20px; }
-    .progress-container { width: 100%; background: #0f172a; border-radius: 8px; overflow: hidden; margin-top: 10px; height: 14px; display: none; }
-    .progress-bar { width: 0%; height: 100%; background: #38bdf8; transition: width 0.1s; }
+    .upload-box {
+      background: var(--bg-raised); padding: 18px; border-radius: var(--r-lg);
+      border: 1px dashed var(--border); text-align: center; margin-bottom: 20px;
+    }
+    .progress-container { width: 100%; background: var(--bg-input); border-radius: var(--r-sm); overflow: hidden; margin-top: 10px; height: 8px; display: none; }
+    .progress-bar { width: 0%; height: 100%; background: var(--accent); transition: width 0.1s; }
 
     /* 스마트폰 갤러리형 그리드 */
-    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-    .gallery-item { background: #1e293b; border-radius: 10px; overflow: hidden; border: 1px solid #334155; position: relative; cursor: pointer; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+    .gallery-item {
+      background: var(--bg-raised); border-radius: var(--r-md); overflow: hidden;
+      border: 1px solid var(--border-soft); position: relative; cursor: pointer;
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s;
+    }
+    .gallery-item:hover { border-color: var(--border); }
     .gallery-item img, .gallery-item video { width: 100%; height: 100%; object-fit: cover; }
-    .gallery-item .file-badge { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.7); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: #fff; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gallery-item .file-badge {
+      position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.65);
+      font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; color: #fff;
+      max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
 
     /* 폴더 보기 그리드 */
-    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
-    .folder-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; }
-    .folder-card:hover { border-color: #38bdf8; transform: translateY(-3px); }
-    .folder-card span { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .folder-card {
+      background: var(--bg-raised); border: 1px solid var(--border-soft); border-radius: var(--r-md);
+      padding: 18px 14px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }
+    .folder-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+    .folder-card span { font-size: 2rem; display: block; margin-bottom: 8px; }
+    .folder-card strong { font-size: 0.88rem; font-weight: 500; color: var(--text); }
 
     /* 모달 팝업 */
-    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
-    .modal-content { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 500px; width: 100%; border: 1px solid #334155; text-align: center; position: relative; }
-    .modal-content img, .modal-content video { max-width: 100%; max-height: 60vh; border-radius: 8px; margin-bottom: 15px; }
-    .modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; width: auto; padding: 0; }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
+    .modal-content { background: var(--bg-raised); padding: 18px; border-radius: var(--r-lg); max-width: 480px; width: 100%; border: 1px solid var(--border); text-align: center; position: relative; }
+    .modal-content img, .modal-content video { max-width: 100%; max-height: 58vh; border-radius: var(--r-md); margin-bottom: 14px; }
+    .modal-close { position: absolute; top: 8px; right: 12px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; width: auto; padding: 4px; margin-top: 0; }
+    .modal-close:hover { color: var(--text); background: none; }
+
+    #modalDownloadBtn, #modalDeleteBtn { width: auto; }
+
+    /* 모바일 최적화 */
+    @media (max-width: 480px) {
+      #dashboard { padding: 14px 12px 50px; }
+      .dash-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .dash-header > button { width: 100%; }
+      .current-group-text { margin-left: 0; width: 100%; }
+      .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+      .card { max-width: 100%; padding: 1.75rem 1.5rem; }
+    }
   </style>
 </head>
 <body>
@@ -111,8 +217,8 @@
     </div>
 
     <div class="upload-box">
-      <p style="margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem;">스마트폰 저장소로 보낼 파일을 선택하세요.</p>
-      <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
+      <p style="margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem;">스마트폰 저장소로 보낼 파일을 선택하세요. (한 번에 최대 10개)</p>
+      <input type="file" id="fileInput" multiple style="display: none;" onchange="uploadFile()">
       <button id="uploadTriggerBtn" onclick="document.getElementById('fileInput').click()" style="max-width: 200px; margin: 0 auto;">파일 선택 및 업로드</button>
       <div class="progress-container" id="progressContainer">
         <div class="progress-bar" id="progressBar"></div>
@@ -371,11 +477,52 @@
     });
   }
 
-  // 스마트폰 저장소(shttps)로 직접 파일 업로드
+  // 한 번에 업로드할 수 있는 최대 파일 개수
+  const MAX_UPLOAD_COUNT = 10;
+
+  // 파일 하나를 업로드 (폰 서버 전송 + Firestore 기록)
+  async function uploadSingleFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 사진에서 촬영 기기 / 위치 정보(EXIF) 추출
+    const photoMeta = await extractPhotoMeta(file);
+
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    const result = await uploadWithProgress(
+      `${PHONE_SERVER_URL}/upload`,
+      formData,
+      (percent) => {
+        progressBar.style.width = percent + '%';
+      }
+    );
+
+    const savedName = result.name;
+    const fileUrl = `${PHONE_SERVER_URL}/files/${encodeURIComponent(savedName)}`;
+
+    await addDoc(collection(db, "files"), {
+      name: savedName,
+      url: fileUrl,
+      uploader: currentUser.email.split('@')[0],
+      group: selectedGroup ? selectedGroup.id : null,
+      device: photoMeta.device,
+      gps: photoMeta.gps,
+      createdAt: Date.now()
+    });
+  }
+
+  // 스마트폰 저장소(https)로 직접 파일 업로드 (여러 장 한 번에 최대 MAX_UPLOAD_COUNT개)
   window.uploadFile = async () => {
     const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
-    if (!file) return;
+    let files = Array.from(fileInput.files || []);
+    if (files.length === 0) return;
+
+    if (files.length > MAX_UPLOAD_COUNT) {
+      alert(`한 번에 최대 ${MAX_UPLOAD_COUNT}개까지만 업로드할 수 있습니다. 처음 ${MAX_UPLOAD_COUNT}개만 업로드합니다.`);
+      files = files.slice(0, MAX_UPLOAD_COUNT);
+    }
 
     // 그룹 정보(selectedGroup)가 아직 확정되지 않았다면 여기서 기다린다.
     // 이걸 안 하면 로그인 직후 빠르게 업로드했을 때 group이 null로 저장되어
@@ -386,60 +533,50 @@
       setUploadEnabled(true);
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     progressContainer.style.display = 'block';
     progressText.style.display = 'block';
     progressBar.style.width = '0%';
-    progressText.innerText = '업로드 준비 중... (사진 정보 확인 중)';
 
-    // 사진에서 촬영 기기 / 위치 정보(EXIF) 추출
-    const photoMeta = await extractPhotoMeta(file);
+    setUploadEnabled(false, '업로드 중...');
 
-    try {
-      const result = await uploadWithProgress(
-        `${PHONE_SERVER_URL}/upload`,
-        formData,
-        (percent) => {
-          progressBar.style.width = percent + '%';
-          progressText.innerText = `업로드 중... ${percent}%`;
-        }
-      );
+    let successCount = 0;
+    const failedNames = [];
 
-      const savedName = result.name;
-      const fileUrl = `${PHONE_SERVER_URL}/files/${encodeURIComponent(savedName)}`;
-
-      progressBar.style.width = '100%';
-      progressText.innerText = '완료 처리 중...';
-
-      await addDoc(collection(db, "files"), {
-        name: savedName,
-        url: fileUrl,
-        uploader: currentUser.email.split('@')[0],
-        group: selectedGroup ? selectedGroup.id : null,
-        device: photoMeta.device,
-        gps: photoMeta.gps,
-        createdAt: Date.now()
-      });
-
-      progressText.innerText = '업로드 완료!';
-      alert("스마트폰 저장소로 파일 업로드가 완료되었습니다!");
-      loadInitialFiles();
-    } catch (error) {
-      alert(`스마트폰 서버 전송 실패 (${error.message}). Termux에서 python server.py 창이 켜져 있는지, 터널이 켜져 있는지 확인하세요.`);
-    } finally {
-      setTimeout(() => {
-        progressContainer.style.display = 'none';
-        progressText.style.display = 'none';
-        progressBar.style.width = '0%';
-        progressText.innerText = '';
-        fileInput.value = '';
-      }, 500);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      progressText.innerText = `업로드 중... (${i + 1}/${files.length}) ${file.name}`;
+      progressBar.style.width = '0%';
+      try {
+        await uploadSingleFile(file);
+        successCount++;
+      } catch (error) {
+        console.error('업로드 실패:', file.name, error);
+        failedNames.push(file.name);
+      }
     }
+
+    progressBar.style.width = '100%';
+    progressText.innerText = '완료 처리 중...';
+
+    if (failedNames.length === 0) {
+      alert(`스마트폰 저장소로 파일 ${successCount}개 업로드가 완료되었습니다!`);
+    } else {
+      alert(`업로드 완료: 성공 ${successCount}개, 실패 ${failedNames.length}개\n실패한 파일: ${failedNames.join(', ')}\n(Termux에서 python server.py 창이 켜져 있는지, 터널이 켜져 있는지 확인하세요.)`);
+    }
+
+    loadInitialFiles();
+
+    setUploadEnabled(true);
+    setTimeout(() => {
+      progressContainer.style.display = 'none';
+      progressText.style.display = 'none';
+      progressBar.style.width = '0%';
+      progressText.innerText = '';
+      fileInput.value = '';
+    }, 500);
   };
 
   // 현재 상태(관리자 / 선택된 그룹 / 그룹 없음)에 맞는 파일 목록 쿼리를 구성
