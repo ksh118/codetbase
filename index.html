@@ -113,7 +113,7 @@
     <div class="upload-box">
       <p style="margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem;">스마트폰 저장소로 보낼 파일을 선택하세요.</p>
       <input type="file" id="fileInput" style="display: none;" onchange="uploadFile()">
-      <button onclick="document.getElementById('fileInput').click()" style="max-width: 200px; margin: 0 auto;">파일 선택 및 업로드</button>
+      <button id="uploadTriggerBtn" onclick="document.getElementById('fileInput').click()" style="max-width: 200px; margin: 0 auto;">파일 선택 및 업로드</button>
       <div class="progress-container" id="progressContainer">
         <div class="progress-bar" id="progressBar"></div>
       </div>
@@ -195,6 +195,13 @@
   let userGroups = [];       // 현재 로그인한 사용자가 소속된 그룹 목록
   let selectedGroup = null;  // 현재 화면에 선택되어 보여지고 있는 그룹
 
+  // 그룹 정보(userGroups/selectedGroup)가 완전히 로딩될 때까지 업로드를 막기 위한 Promise
+  // (로그인 직후 화면은 바로 뜨지만 그룹 정보는 비동기로 늦게 확정되기 때문에,
+  //  이 Promise가 끝나기 전에 업로드하면 group 필드가 null로 잘못 저장되는 문제가 있었음)
+  let groupsReady = false;
+  let resolveGroupsReady;
+  let groupsReadyPromise = new Promise((res) => { resolveGroupsReady = res; });
+
   // 로그인
   window.login = async () => {
     const rawId = document.getElementById('loginId').value.trim();
@@ -232,7 +239,12 @@
         document.getElementById('adminLink').classList.add('hidden');
       }
       document.getElementById('welcomeText').innerText = `${userId} 님 환영합니다.`;
+
+      // 그룹 정보를 다 불러오기 전에는 업로드를 막아서, group 필드가 null로 잘못 저장되는 것을 방지
+      setUploadEnabled(false, '그룹 정보 불러오는 중...');
       await loadUserGroups(userId);
+      setUploadEnabled(true);
+
       loadInitialFiles();
     } else {
       document.getElementById('loginCard').style.display = 'block';
@@ -250,6 +262,19 @@
     selectedGroup = userGroups.length > 0 ? userGroups[0] : null;
     updateCurrentGroupLabel();
     renderGroupTabs();
+
+    groupsReady = true;
+    resolveGroupsReady();
+  }
+
+  // 업로드 버튼 활성/비활성 상태를 제어 (그룹 정보 로딩 중에는 비활성화)
+  function setUploadEnabled(enabled, labelWhenDisabled) {
+    const btn = document.getElementById('uploadTriggerBtn');
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.innerText = enabled ? '파일 선택 및 업로드' : (labelWhenDisabled || '불러오는 중...');
+    btn.style.opacity = enabled ? '1' : '0.6';
+    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
   }
 
   function updateCurrentGroupLabel() {
@@ -318,6 +343,15 @@
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
     if (!file) return;
+
+    // 그룹 정보(selectedGroup)가 아직 확정되지 않았다면 여기서 기다린다.
+    // 이걸 안 하면 로그인 직후 빠르게 업로드했을 때 group이 null로 저장되어
+    // "그룹 전체 파일 보기"와 "폴더별 보기" 어디에도 안 뜨는 문제가 생김.
+    if (!groupsReady) {
+      setUploadEnabled(false, '그룹 정보 확인 중...');
+      await groupsReadyPromise;
+      setUploadEnabled(true);
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -389,29 +423,39 @@
   }
 
   async function loadInitialFiles() {
-    const q = buildFilesQuery(null);
-    const querySnapshot = await getDocs(q);
-    allFilesData = [];
-    querySnapshot.forEach((docSnap) => {
-      allFilesData.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
-    renderGallery(allFilesData, 'galleryGrid');
+    try {
+      const q = buildFilesQuery(null);
+      const querySnapshot = await getDocs(q);
+      allFilesData = [];
+      querySnapshot.forEach((docSnap) => {
+        allFilesData.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+      renderGallery(allFilesData, 'galleryGrid');
+    } catch (e) {
+      console.error('파일 목록을 불러오지 못했습니다:', e);
+      alert('파일 목록을 불러오지 못했습니다: ' + e.message + '\n(콘솔 로그에 Firestore 색인 생성 링크가 떴다면 그 링크를 눌러 색인을 만들어주세요.)');
+    }
   }
 
   window.loadMoreFiles = async () => {
     if (!lastVisibleDoc) return alert("더 이상 불러올 파일이 없습니다.");
-    const q = buildFilesQuery(lastVisibleDoc);
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
-      alert("모든 파일을 불러왔습니다.");
-      return;
+    try {
+      const q = buildFilesQuery(lastVisibleDoc);
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        alert("모든 파일을 불러왔습니다.");
+        return;
+      }
+      querySnapshot.forEach((docSnap) => {
+        allFilesData.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+      renderGallery(allFilesData, 'galleryGrid');
+    } catch (e) {
+      console.error('파일을 더 불러오지 못했습니다:', e);
+      alert('파일을 더 불러오지 못했습니다: ' + e.message);
     }
-    querySnapshot.forEach((docSnap) => {
-      allFilesData.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
-    renderGallery(allFilesData, 'galleryGrid');
   };
 
   // 갤러리 그리드 출력
@@ -539,16 +583,22 @@
   async function loadFolders() {
     let uploaders = new Set();
 
-    if (isAdminGlobal) {
-      const querySnapshot = await getDocs(collection(db, "files"));
-      querySnapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.uploader) uploaders.add(data.uploader);
-      });
-    } else if (selectedGroup) {
-      uploaders = new Set(selectedGroup.members || []);
-    } else {
-      uploaders = new Set([currentUserId]);
+    try {
+      if (isAdminGlobal) {
+        const querySnapshot = await getDocs(collection(db, "files"));
+        querySnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.uploader) uploaders.add(data.uploader);
+        });
+      } else if (selectedGroup) {
+        uploaders = new Set(selectedGroup.members || []);
+      } else {
+        uploaders = new Set([currentUserId]);
+      }
+    } catch (e) {
+      console.error('폴더 목록을 불러오지 못했습니다:', e);
+      alert('폴더 목록을 불러오지 못했습니다: ' + e.message);
+      return;
     }
 
     const folderGrid = document.getElementById('folderGrid');
@@ -573,17 +623,22 @@
     document.getElementById('folderDetailView').classList.remove('hidden');
     document.getElementById('currentFolderName').innerText = `📁 ${username} 님의 폴더`;
 
-    const constraints = [where("uploader", "==", username)];
-    if (!isAdminGlobal && selectedGroup) {
-      constraints.push(where("group", "==", selectedGroup.id));
+    try {
+      const constraints = [where("uploader", "==", username)];
+      if (!isAdminGlobal && selectedGroup) {
+        constraints.push(where("group", "==", selectedGroup.id));
+      }
+      const q = query(collection(db, "files"), ...constraints);
+      const querySnapshot = await getDocs(q);
+      const userFiles = [];
+      querySnapshot.forEach(docSnap => {
+        userFiles.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      renderGallery(userFiles, 'folderGalleryGrid');
+    } catch (e) {
+      console.error('폴더 파일을 불러오지 못했습니다:', e);
+      alert('폴더 파일을 불러오지 못했습니다: ' + e.message);
     }
-    const q = query(collection(db, "files"), ...constraints);
-    const querySnapshot = await getDocs(q);
-    const userFiles = [];
-    querySnapshot.forEach(docSnap => {
-      userFiles.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    renderGallery(userFiles, 'folderGalleryGrid');
   }
 
   window.backToFolders = () => {
