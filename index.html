@@ -7,26 +7,29 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
-    
+
     .card { background: #1e293b; padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; }
-    
+
     #dashboard { display: none; width: 100%; max-width: 1200px; min-height: 100vh; padding: 20px; flex-direction: column; }
-    
+
     h2 { margin-bottom: 1.5rem; color: #38bdf8; font-size: 1.6rem; }
     .badge { display: inline-block; padding: 4px 10px; background: #0284c7; color: #fff; font-size: 0.75rem; border-radius: 20px; margin-bottom: 1rem; }
     .badge.admin { background: #e11d48; }
-    
+
     .input-group { margin-bottom: 1rem; text-align: left; }
     label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 0.4rem; }
     input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 0.95rem; outline: none; }
     input:focus { border-color: #38bdf8; }
-    
+
     button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #0284c7; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
     button:hover { background: #0369a1; }
     button.secondary { background: #475569; }
     button.secondary:hover { background: #334155; }
     button.danger { background: #ef4444; }
     button.danger:hover { background: #dc2626; }
+
+    a.admin-link { display: inline-block; margin-top: 8px; font-size: 0.8rem; color: #fca5a5; text-decoration: none; }
+    a.admin-link:hover { text-decoration: underline; }
 
     .hidden { display: none !important; }
     .info-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4; }
@@ -42,9 +45,6 @@
     .group-btn { width: auto; padding: 6px 14px; font-size: 0.85rem; margin-top: 0; background: #334155; }
     .group-btn.active-group { background: #0284c7; }
     .current-group-text { color: #38bdf8; font-size: 0.85rem; font-weight: bold; margin-left: auto; }
-
-    .group-row { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
-    .group-row button { width: auto; padding: 6px 12px; margin-top: 0; }
 
     .modal-meta { text-align: left; background: #0f172a; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; }
     .modal-meta a { color: #38bdf8; }
@@ -94,34 +94,9 @@
       <div>
         <span class="badge" id="roleBadge">일반 사용자</span>
         <h3 id="welcomeText" style="font-size: 1.1rem; margin-top: 5px;">환영합니다</h3>
+        <a href="admin.html" class="admin-link hidden" id="adminLink">👑 관리자 페이지로 이동 →</a>
       </div>
       <button class="secondary" style="width: auto; padding: 8px 16px;" onclick="logout()">로그아웃</button>
-    </div>
-
-    <div class="card admin-card hidden" id="adminPanel" style="max-width: 100%; margin-bottom: 20px; text-align: left;">
-      <h3 style="color: #e11d48; margin-bottom: 10px;">👑 관리자 패널: 새 계정 발급</h3>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input type="text" id="newId" placeholder="생성할 아이디 (예: user2)" style="flex: 1; min-width: 200px;">
-        <input type="text" id="newPassword" placeholder="초기 비밀번호 (6자리 이상)" style="flex: 1; min-width: 200px;">
-        <button onclick="createAccountByAdmin()" style="width: auto; padding: 0 20px; margin-top: 0;">계정 생성</button>
-      </div>
-    </div>
-
-    <div class="card admin-card hidden" id="groupPanel" style="max-width: 100%; margin-bottom: 20px; text-align: left;">
-      <h3 style="color: #e11d48; margin-bottom: 10px;">👥 관리자 패널: 그룹 관리</h3>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-        <input type="text" id="groupNameInput" placeholder="그룹 이름 (예: 스카이드론)" style="flex: 1; min-width: 150px;">
-        <input type="text" id="groupMembersInput" placeholder="소속 계정 (콤마로 구분, 예: user1,user2,user3,user4)" style="flex: 2; min-width: 250px;">
-        <button onclick="saveGroup()" style="width: auto; padding: 0 20px; margin-top: 0;">그룹 저장</button>
-        <button class="secondary" onclick="cancelGroupEdit()" style="width: auto; padding: 0 20px; margin-top: 0;">취소</button>
-      </div>
-      <div id="groupListContainer" style="color:#94a3b8; font-size:0.9rem;">불러오는 중...</div>
-    </div>
-
-    <div class="card admin-card hidden" id="serverStatusPanel" style="max-width: 100%; margin-bottom: 20px; text-align: left;">
-      <h3 style="color: #e11d48; margin-bottom: 10px;">📱 관리자 패널: 서버(폰) 상태</h3>
-      <div id="serverStatusContent" style="color:#94a3b8; font-size:0.9rem; line-height:1.6;">불러오는 중...</div>
-      <button class="secondary" style="width: auto; padding: 6px 14px; margin-top: 10px;" onclick="loadServerStatus()">새로고침</button>
     </div>
 
     <div class="group-bar" id="groupBar">
@@ -175,13 +150,17 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { 
-    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword 
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { 
-    getFirestore, collection, addDoc, setDoc, getDocs, deleteDoc, doc, query, orderBy, limit, startAfter, where 
+  import {
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit, startAfter, where
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   import * as exifr from "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs";
+
+  // ⚠️ 이 파일(index.html)은 일반 사용자용입니다.
+  // 계정 발급 / 그룹 생성-수정 / 서버 상태 확인 같은 관리자 기능은 여기 전혀 없습니다.
+  // 그런 기능은 admin.html 에서만 다룹니다.
 
   // Firebase Config
   const firebaseConfig = {
@@ -198,7 +177,7 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // 스마트폰 연결 주소 (Localtonet)
+  // 스마트폰 연결 주소 (Localtonet / Cloudflare Tunnel)
   const PHONE_SERVER_URL = "https://apparent-evening-when-exec.trycloudflare.com";
 
   const DOMAIN = "@codetbase.com";
@@ -206,7 +185,7 @@
 
   let currentUser = null;
   let currentUserId = null;
-  let isAdminGlobal = false;
+  let isAdminGlobal = false; // 관리자 계정이면 파일을 그룹 구분 없이 전체 볼 수 있게 하기 위한 용도로만 사용 (관리 기능 아님)
   let allFilesData = [];
   let currentModalFile = null;
   let lastVisibleDoc = null;
@@ -215,7 +194,6 @@
   // 그룹 관련 상태
   let userGroups = [];       // 현재 로그인한 사용자가 소속된 그룹 목록
   let selectedGroup = null;  // 현재 화면에 선택되어 보여지고 있는 그룹
-  let editingGroupId = null; // 관리자가 수정 중인 그룹 id (없으면 null = 신규 생성)
 
   // 로그인
   window.login = async () => {
@@ -232,25 +210,6 @@
 
   window.logout = () => signOut(auth);
 
-  // 관리자 계정 생성
-  window.createAccountByAdmin = async () => {
-    const rawId = document.getElementById('newId').value.trim();
-    const newPassword = document.getElementById('newPassword').value.trim();
-    if (!rawId || !newPassword) return alert("아이디와 비밀번호를 입력해주세요.");
-    const newEmail = rawId.includes('@') ? rawId : rawId + DOMAIN;
-    try {
-      const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
-      const secondaryAuth = getAuth(secondaryApp);
-      await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPassword);
-      await signOut(secondaryAuth);
-      alert(`계정 생성 완료! 아이디: ${rawId}`);
-      document.getElementById('newId').value = '';
-      document.getElementById('newPassword').value = '';
-    } catch (e) {
-      alert("오류: " + e.message);
-    }
-  };
-
   // 로그인 상태 세션 관리
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
@@ -266,14 +225,11 @@
       if (isAdmin) {
         badge.innerText = "관리자";
         badge.className = "badge admin";
-        document.getElementById('adminPanel').classList.remove('hidden');
-        document.getElementById('groupPanel').classList.remove('hidden');
-        document.getElementById('serverStatusPanel').classList.remove('hidden');
-        loadAllGroupsForAdmin();
-        loadServerStatus();
+        document.getElementById('adminLink').classList.remove('hidden');
       } else {
         badge.innerText = "일반 사용자";
         badge.className = "badge";
+        document.getElementById('adminLink').classList.add('hidden');
       }
       document.getElementById('welcomeText').innerText = `${userId} 님 환영합니다.`;
       await loadUserGroups(userId);
@@ -284,18 +240,14 @@
     }
   });
 
-  // 사용자가 소속된 그룹 불러오기 (관리자는 모든 그룹을 볼 수 있지만, 상단 탭은 소속 그룹 기준으로 표시)
+  // 사용자가 소속된 그룹 불러오기
   async function loadUserGroups(userId) {
     const q = query(collection(db, "groups"), where("members", "array-contains", userId));
     const snap = await getDocs(q);
     userGroups = [];
     snap.forEach(d => userGroups.push({ id: d.id, ...d.data() }));
 
-    if (userGroups.length > 0) {
-      selectedGroup = userGroups[0];
-    } else {
-      selectedGroup = null;
-    }
+    selectedGroup = userGroups.length > 0 ? userGroups[0] : null;
     updateCurrentGroupLabel();
     renderGroupTabs();
   }
@@ -367,8 +319,6 @@
     const file = fileInput.files[0];
     if (!file) return;
 
-    // Termux(Flask) 서버는 /upload 경로로 멀티파트 POST를 받아서
-    // 저장된 실제 파일명(중복 방지용 타임스탬프 포함)을 JSON으로 응답해준다.
     const formData = new FormData();
     formData.append('file', file);
 
@@ -397,7 +347,6 @@
 
       progressBar.style.width = '100%';
 
-      // 폰 전송 완료 후 Firebase에 정보 기록
       await addDoc(collection(db, "files"), {
         name: savedName,
         url: fileUrl,
@@ -411,7 +360,7 @@
       alert("스마트폰 저장소로 파일 업로드가 완료되었습니다!");
       loadInitialFiles();
     } catch (error) {
-      alert(`스마트폰 서버 전송 실패 (${error.message}). Termux에서 python server.py 창이 켜져 있는지, Localtonet 터널이 8095 포트로 켜져 있는지 확인하세요.`);
+      alert(`스마트폰 서버 전송 실패 (${error.message}). Termux에서 python server.py 창이 켜져 있는지, 터널이 켜져 있는지 확인하세요.`);
     } finally {
       setTimeout(() => {
         progressContainer.style.display = 'none';
@@ -425,24 +374,20 @@
   function buildFilesQuery(afterDoc) {
     const base = collection(db, "files");
     if (isAdminGlobal) {
-      // 관리자는 그룹 구분 없이 전체 파일을 봄
       return afterDoc
         ? query(base, orderBy("createdAt", "desc"), startAfter(afterDoc), limit(PAGE_SIZE))
         : query(base, orderBy("createdAt", "desc"), limit(PAGE_SIZE));
     } else if (selectedGroup) {
-      // 같은 그룹 사람들이 올린 파일만
       return afterDoc
         ? query(base, where("group", "==", selectedGroup.id), orderBy("createdAt", "desc"), startAfter(afterDoc), limit(PAGE_SIZE))
         : query(base, where("group", "==", selectedGroup.id), orderBy("createdAt", "desc"), limit(PAGE_SIZE));
     } else {
-      // 소속 그룹이 없으면 본인이 올린 파일만
       return afterDoc
         ? query(base, where("uploader", "==", currentUserId), orderBy("createdAt", "desc"), startAfter(afterDoc), limit(PAGE_SIZE))
         : query(base, where("uploader", "==", currentUserId), orderBy("createdAt", "desc"), limit(PAGE_SIZE));
     }
   }
 
-  // 20개씩 불러오기
   async function loadInitialFiles() {
     const q = buildFilesQuery(null);
     const querySnapshot = await getDocs(q);
@@ -476,7 +421,7 @@
     files.forEach(file => {
       const item = document.createElement('div');
       item.className = 'gallery-item';
-      
+
       const isVideo = file.name.match(/\.(mp4|webm|ogg|mov)$/i);
       if (isVideo) {
         item.innerHTML = `<video src="${file.url}"></video><div class="file-badge">${file.name}</div>`;
@@ -540,12 +485,10 @@
             return; // 공유 시트에서 "사진 앱에 저장"을 선택하면 갤러리에 저장됨
           }
         } catch (shareErr) {
-          // 사용자가 공유를 취소한 경우 등은 그냥 아래 방식으로 대체 진행
           if (shareErr && shareErr.name === 'AbortError') return;
         }
       }
 
-      // 공유 시트를 지원하지 않는 경우 (주로 컴퓨터) 일반 파일 다운로드로 저장
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
@@ -646,104 +589,6 @@
   window.backToFolders = () => {
     document.getElementById('folderDetailView').classList.add('hidden');
     document.getElementById('foldersView').classList.remove('hidden');
-  };
-
-  // ===== 관리자: 그룹 관리 =====
-
-  window.saveGroup = async () => {
-    const name = document.getElementById('groupNameInput').value.trim();
-    const membersRaw = document.getElementById('groupMembersInput').value.trim();
-    if (!name || !membersRaw) return alert('그룹 이름과 소속 계정을 입력해주세요.');
-    const members = membersRaw.split(',').map(s => s.trim()).filter(Boolean);
-
-    try {
-      if (editingGroupId) {
-        await setDoc(doc(db, "groups", editingGroupId), { name, members }, { merge: false });
-        alert('그룹이 수정되었습니다.');
-      } else {
-        await addDoc(collection(db, "groups"), { name, members });
-        alert('그룹이 생성되었습니다.');
-      }
-      cancelGroupEdit();
-      loadAllGroupsForAdmin();
-      // 관리자 본인도 그룹에 속해있을 수 있으니 그룹 탭 갱신
-      if (currentUserId) loadUserGroups(currentUserId);
-    } catch (e) {
-      alert('오류: ' + e.message);
-    }
-  };
-
-  window.cancelGroupEdit = () => {
-    editingGroupId = null;
-    document.getElementById('groupNameInput').value = '';
-    document.getElementById('groupMembersInput').value = '';
-  };
-
-  let groupsCache = [];
-
-  async function loadAllGroupsForAdmin() {
-    const snap = await getDocs(collection(db, "groups"));
-    groupsCache = [];
-    snap.forEach(d => groupsCache.push({ id: d.id, ...d.data() }));
-
-    const container = document.getElementById('groupListContainer');
-    container.innerHTML = '';
-    if (groupsCache.length === 0) {
-      container.innerHTML = '<p>아직 생성된 그룹이 없습니다.</p>';
-      return;
-    }
-    groupsCache.forEach(g => {
-      const row = document.createElement('div');
-      row.className = 'group-row';
-      const membersText = (g.members || []).join(', ') || '(소속 계정 없음)';
-      row.innerHTML = `
-        <div><strong style="color:#38bdf8;">${g.name}</strong><br><span style="color:#94a3b8; font-size:0.85rem;">${membersText}</span></div>
-        <div style="display:flex; gap:6px;">
-          <button onclick="editGroup('${g.id}')">수정</button>
-          <button class="danger" onclick="deleteGroup('${g.id}')">삭제</button>
-        </div>
-      `;
-      container.appendChild(row);
-    });
-  }
-
-  window.editGroup = (id) => {
-    const g = groupsCache.find(gr => gr.id === id);
-    if (!g) return;
-    document.getElementById('groupNameInput').value = g.name;
-    document.getElementById('groupMembersInput').value = (g.members || []).join(',');
-    editingGroupId = id;
-  };
-
-  window.deleteGroup = async (id) => {
-    if (!confirm('그룹을 삭제하시겠습니까?\n(이미 이 그룹으로 업로드된 파일은 삭제되지 않지만, 더 이상 어떤 그룹 탭에서도 조회되지 않습니다.)')) return;
-    try {
-      await deleteDoc(doc(db, "groups", id));
-      loadAllGroupsForAdmin();
-      if (currentUserId) loadUserGroups(currentUserId);
-    } catch (e) {
-      alert('삭제 실패: ' + e.message);
-    }
-  };
-
-  // ===== 관리자: 서버(폰) 상태 =====
-
-  window.loadServerStatus = async () => {
-    const el = document.getElementById('serverStatusContent');
-    el.innerText = '불러오는 중...';
-    try {
-      const res = await fetch(`${PHONE_SERVER_URL}/status`);
-      if (!res.ok) throw new Error(`상태 코드 ${res.status}`);
-      const s = await res.json();
-      el.innerHTML = `
-        💾 저장공간: ${s.storage_free ?? '정보 없음'} 남음 / 전체 ${s.storage_total ?? '?'}<br>
-        📶 와이파이: ${s.wifi_ssid ?? '연결 정보 없음'} (신호 세기: ${s.wifi_signal ?? '-'})<br>
-        🔋 배터리: ${s.battery_percentage != null ? s.battery_percentage + '%' : '정보 없음'} ${s.battery_status ? '(' + s.battery_status + ')' : ''}<br>
-        🌡️ 온도: ${s.temperature ?? '이 기기/서버에서는 확인할 수 없음'}
-      `;
-    } catch (e) {
-      el.innerHTML = `상태 정보를 가져올 수 없습니다 (${e.message}).<br>Termux 서버(server.py)에 <code>/status</code> 라우트를 추가해야 합니다.`;
-    }
   };
 </script>
 
