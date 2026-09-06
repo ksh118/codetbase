@@ -32,9 +32,22 @@
     .info-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4; }
 
     .dash-header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 20px; }
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .nav-tabs button { width: auto; padding: 8px 16px; font-size: 0.9rem; background: #334155; }
     .nav-tabs button.active { background: #0284c7; }
+
+    /* 그룹 바 */
+    .group-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
+    .group-bar .group-label { color: #94a3b8; font-size: 0.85rem; white-space: nowrap; }
+    .group-btn { width: auto; padding: 6px 14px; font-size: 0.85rem; margin-top: 0; background: #334155; }
+    .group-btn.active-group { background: #0284c7; }
+    .current-group-text { color: #38bdf8; font-size: 0.85rem; font-weight: bold; margin-left: auto; }
+
+    .group-row { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+    .group-row button { width: auto; padding: 6px 12px; margin-top: 0; }
+
+    .modal-meta { text-align: left; background: #0f172a; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; }
+    .modal-meta a { color: #38bdf8; }
 
     /* 업로드 박스 및 프로그레스 바 */
     .upload-box { background: #1e293b; padding: 20px; border-radius: 12px; border: 2px dashed #334155; text-align: center; margin-bottom: 20px; }
@@ -94,6 +107,29 @@
       </div>
     </div>
 
+    <div class="card admin-card hidden" id="groupPanel" style="max-width: 100%; margin-bottom: 20px; text-align: left;">
+      <h3 style="color: #e11d48; margin-bottom: 10px;">👥 관리자 패널: 그룹 관리</h3>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+        <input type="text" id="groupNameInput" placeholder="그룹 이름 (예: 스카이드론)" style="flex: 1; min-width: 150px;">
+        <input type="text" id="groupMembersInput" placeholder="소속 계정 (콤마로 구분, 예: user1,user2,user3,user4)" style="flex: 2; min-width: 250px;">
+        <button onclick="saveGroup()" style="width: auto; padding: 0 20px; margin-top: 0;">그룹 저장</button>
+        <button class="secondary" onclick="cancelGroupEdit()" style="width: auto; padding: 0 20px; margin-top: 0;">취소</button>
+      </div>
+      <div id="groupListContainer" style="color:#94a3b8; font-size:0.9rem;">불러오는 중...</div>
+    </div>
+
+    <div class="card admin-card hidden" id="serverStatusPanel" style="max-width: 100%; margin-bottom: 20px; text-align: left;">
+      <h3 style="color: #e11d48; margin-bottom: 10px;">📱 관리자 패널: 서버(폰) 상태</h3>
+      <div id="serverStatusContent" style="color:#94a3b8; font-size:0.9rem; line-height:1.6;">불러오는 중...</div>
+      <button class="secondary" style="width: auto; padding: 6px 14px; margin-top: 10px;" onclick="loadServerStatus()">새로고침</button>
+    </div>
+
+    <div class="group-bar" id="groupBar">
+      <span class="group-label">소속 그룹:</span>
+      <div id="groupButtons" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      <span class="current-group-text" id="currentGroupLabel"></span>
+    </div>
+
     <div class="nav-tabs">
       <button id="tabAll" class="active" onclick="switchTab('all')">전체 파일 보기</button>
       <button id="tabFolders" onclick="switchTab('folders')">폴더별 보기</button>
@@ -129,8 +165,9 @@
       <button class="modal-close" onclick="closeModalDirect()">×</button>
       <div id="modalMediaContainer"></div>
       <p id="modalUploader" style="margin: 10px 0; font-size: 0.9rem; color: #94a3b8;"></p>
+      <div class="modal-meta" id="modalMeta"></div>
       <div style="display: flex; gap: 10px;">
-        <a id="modalDownloadBtn" download style="flex: 1;"><button>저장 / 다운로드</button></a>
+        <button id="modalDownloadBtn" style="flex: 1;" onclick="downloadCurrentFile()">저장 / 다운로드</button>
         <button id="modalDeleteBtn" class="danger hidden" onclick="deleteCurrentFile()" style="flex: 1;">삭제</button>
       </div>
     </div>
@@ -142,8 +179,9 @@
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword 
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { 
-    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit, startAfter, where 
+    getFirestore, collection, addDoc, setDoc, getDocs, deleteDoc, doc, query, orderBy, limit, startAfter, where 
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import * as exifr from "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs";
 
   // Firebase Config
   const firebaseConfig = {
@@ -167,10 +205,17 @@
   const ADMIN_EMAILS = ["admin@codetbase.com", "admin"];
 
   let currentUser = null;
+  let currentUserId = null;
+  let isAdminGlobal = false;
   let allFilesData = [];
   let currentModalFile = null;
   let lastVisibleDoc = null;
   const PAGE_SIZE = 20;
+
+  // 그룹 관련 상태
+  let userGroups = [];       // 현재 로그인한 사용자가 소속된 그룹 목록
+  let selectedGroup = null;  // 현재 화면에 선택되어 보여지고 있는 그룹
+  let editingGroupId = null; // 관리자가 수정 중인 그룹 id (없으면 null = 신규 생성)
 
   // 로그인
   window.login = async () => {
@@ -213,24 +258,108 @@
       document.getElementById('loginCard').style.display = 'none';
       document.getElementById('dashboard').style.display = 'flex';
       const userId = user.email.split('@')[0];
+      currentUserId = userId;
       const isAdmin = ADMIN_EMAILS.includes(user.email) || ADMIN_EMAILS.includes(userId);
+      isAdminGlobal = isAdmin;
 
       const badge = document.getElementById('roleBadge');
       if (isAdmin) {
         badge.innerText = "관리자";
         badge.className = "badge admin";
         document.getElementById('adminPanel').classList.remove('hidden');
+        document.getElementById('groupPanel').classList.remove('hidden');
+        document.getElementById('serverStatusPanel').classList.remove('hidden');
+        loadAllGroupsForAdmin();
+        loadServerStatus();
       } else {
         badge.innerText = "일반 사용자";
         badge.className = "badge";
       }
       document.getElementById('welcomeText').innerText = `${userId} 님 환영합니다.`;
+      await loadUserGroups(userId);
       loadInitialFiles();
     } else {
       document.getElementById('loginCard').style.display = 'block';
       document.getElementById('dashboard').style.display = 'none';
     }
   });
+
+  // 사용자가 소속된 그룹 불러오기 (관리자는 모든 그룹을 볼 수 있지만, 상단 탭은 소속 그룹 기준으로 표시)
+  async function loadUserGroups(userId) {
+    const q = query(collection(db, "groups"), where("members", "array-contains", userId));
+    const snap = await getDocs(q);
+    userGroups = [];
+    snap.forEach(d => userGroups.push({ id: d.id, ...d.data() }));
+
+    if (userGroups.length > 0) {
+      selectedGroup = userGroups[0];
+    } else {
+      selectedGroup = null;
+    }
+    updateCurrentGroupLabel();
+    renderGroupTabs();
+  }
+
+  function updateCurrentGroupLabel() {
+    const label = document.getElementById('currentGroupLabel');
+    if (selectedGroup) {
+      label.innerText = `현재 그룹: ${selectedGroup.name}`;
+    } else {
+      label.innerText = isAdminGlobal ? `현재 그룹: 전체 (관리자)` : `현재 그룹: 없음 (내 파일만 표시)`;
+    }
+  }
+
+  function renderGroupTabs() {
+    const container = document.getElementById('groupButtons');
+    container.innerHTML = '';
+    if (userGroups.length === 0) {
+      const span = document.createElement('span');
+      span.style.cssText = 'color:#64748b; font-size:0.85rem;';
+      span.innerText = isAdminGlobal ? '관리자는 모든 파일을 볼 수 있습니다.' : '소속된 그룹이 없습니다 (내가 올린 파일만 표시됩니다)';
+      container.appendChild(span);
+      return;
+    }
+    userGroups.forEach(g => {
+      const btn = document.createElement('button');
+      btn.className = 'group-btn' + (selectedGroup && selectedGroup.id === g.id ? ' active-group' : '');
+      btn.innerText = g.name;
+      btn.onclick = () => selectGroup(g);
+      container.appendChild(btn);
+    });
+  }
+
+  window.selectGroup = (g) => {
+    selectedGroup = g;
+    updateCurrentGroupLabel();
+    renderGroupTabs();
+    loadInitialFiles();
+    if (!document.getElementById('foldersView').classList.contains('hidden')) {
+      loadFolders();
+    }
+  };
+
+  // 사진 파일에서 촬영 기기(Make/Model)와 GPS 위치 정보를 읽어옴 (없으면 null)
+  async function extractPhotoMeta(file) {
+    let device = null;
+    let gps = null;
+    if (file.type && file.type.startsWith('image/')) {
+      try {
+        const data = await exifr.parse(file, { gps: true, tiff: true, ifd0: true });
+        if (data) {
+          const make = data.Make ? data.Make.trim() : '';
+          const model = data.Model ? data.Model.trim() : '';
+          const combined = `${make} ${model}`.trim();
+          if (combined) device = combined;
+          if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+            gps = { lat: data.latitude, lng: data.longitude };
+          }
+        }
+      } catch (e) {
+        console.warn('EXIF 정보를 읽을 수 없습니다:', e);
+      }
+    }
+    return { device, gps };
+  }
 
   // 스마트폰 저장소(shttps)로 직접 파일 업로드
   window.uploadFile = async () => {
@@ -246,6 +375,10 @@
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
     progressContainer.style.display = 'block';
+    progressBar.style.width = '15%';
+
+    // 사진에서 촬영 기기 / 위치 정보(EXIF) 추출
+    const photoMeta = await extractPhotoMeta(file);
     progressBar.style.width = '30%';
 
     try {
@@ -269,6 +402,9 @@
         name: savedName,
         url: fileUrl,
         uploader: currentUser.email.split('@')[0],
+        group: selectedGroup ? selectedGroup.id : null,
+        device: photoMeta.device,
+        gps: photoMeta.gps,
         createdAt: Date.now()
       });
 
@@ -285,21 +421,42 @@
     }
   };
 
+  // 현재 상태(관리자 / 선택된 그룹 / 그룹 없음)에 맞는 파일 목록 쿼리를 구성
+  function buildFilesQuery(afterDoc) {
+    const base = collection(db, "files");
+    if (isAdminGlobal) {
+      // 관리자는 그룹 구분 없이 전체 파일을 봄
+      return afterDoc
+        ? query(base, orderBy("createdAt", "desc"), startAfter(afterDoc), limit(PAGE_SIZE))
+        : query(base, orderBy("createdAt", "desc"), limit(PAGE_SIZE));
+    } else if (selectedGroup) {
+      // 같은 그룹 사람들이 올린 파일만
+      return afterDoc
+        ? query(base, where("group", "==", selectedGroup.id), orderBy("createdAt", "desc"), startAfter(afterDoc), limit(PAGE_SIZE))
+        : query(base, where("group", "==", selectedGroup.id), orderBy("createdAt", "desc"), limit(PAGE_SIZE));
+    } else {
+      // 소속 그룹이 없으면 본인이 올린 파일만
+      return afterDoc
+        ? query(base, where("uploader", "==", currentUserId), orderBy("createdAt", "desc"), startAfter(afterDoc), limit(PAGE_SIZE))
+        : query(base, where("uploader", "==", currentUserId), orderBy("createdAt", "desc"), limit(PAGE_SIZE));
+    }
+  }
+
   // 20개씩 불러오기
   async function loadInitialFiles() {
-    const q = query(collection(db, "files"), orderBy("createdAt", "desc"), limit(PAGE_SIZE));
+    const q = buildFilesQuery(null);
     const querySnapshot = await getDocs(q);
     allFilesData = [];
     querySnapshot.forEach((docSnap) => {
       allFilesData.push({ id: docSnap.id, ...docSnap.data() });
     });
-    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
     renderGallery(allFilesData, 'galleryGrid');
   }
 
   window.loadMoreFiles = async () => {
     if (!lastVisibleDoc) return alert("더 이상 불러올 파일이 없습니다.");
-    const q = query(collection(db, "files"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(PAGE_SIZE));
+    const q = buildFilesQuery(lastVisibleDoc);
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
       alert("모든 파일을 불러왔습니다.");
@@ -308,7 +465,7 @@
     querySnapshot.forEach((docSnap) => {
       allFilesData.push({ id: docSnap.id, ...docSnap.data() });
     });
-    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+    lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
     renderGallery(allFilesData, 'galleryGrid');
   };
 
@@ -339,7 +496,15 @@
     container.innerHTML = isVideo ? `<video src="${file.url}" controls autoplay></video>` : `<img src="${file.url}">`;
 
     document.getElementById('modalUploader').innerText = `올린 사람: ${file.uploader}`;
-    document.getElementById('modalDownloadBtn').href = file.url;
+
+    const deviceText = file.device ? file.device : '기기 정보 없음';
+    const gpsText = (file.gps && typeof file.gps.lat === 'number')
+      ? `위도 ${file.gps.lat.toFixed(5)}, 경도 ${file.gps.lng.toFixed(5)} — <a href="https://maps.google.com/?q=${file.gps.lat},${file.gps.lng}" target="_blank" rel="noopener">지도에서 보기</a>`
+      : '위치 정보 없음';
+    document.getElementById('modalMeta').innerHTML = `
+      📷 촬영 기기: ${deviceText}<br>
+      📍 촬영 위치: ${gpsText}
+    `;
 
     const userId = currentUser.email.split('@')[0];
     const isAdmin = ADMIN_EMAILS.includes(currentUser.email) || ADMIN_EMAILS.includes(userId);
@@ -352,6 +517,46 @@
     }
 
     document.getElementById('fileModal').style.display = 'flex';
+  }
+
+  // 다운로드 버튼: 모바일에서는 공유 시트(사진 앱에 저장 가능)를, 컴퓨터에서는 파일로 저장을 시도
+  window.downloadCurrentFile = () => {
+    if (!currentModalFile) return;
+    smartDownload(currentModalFile.url, currentModalFile.name);
+  };
+
+  async function smartDownload(url, filename) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`파일을 불러올 수 없습니다 (${resp.status})`);
+      const blob = await resp.blob();
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile && navigator.canShare) {
+        try {
+          const fileObj = new File([blob], filename, { type: blob.type });
+          if (navigator.canShare({ files: [fileObj] })) {
+            await navigator.share({ files: [fileObj] });
+            return; // 공유 시트에서 "사진 앱에 저장"을 선택하면 갤러리에 저장됨
+          }
+        } catch (shareErr) {
+          // 사용자가 공유를 취소한 경우 등은 그냥 아래 방식으로 대체 진행
+          if (shareErr && shareErr.name === 'AbortError') return;
+        }
+      }
+
+      // 공유 시트를 지원하지 않는 경우 (주로 컴퓨터) 일반 파일 다운로드로 저장
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    } catch (e) {
+      alert('저장 실패: ' + e.message);
+    }
   }
 
   window.closeModalDirect = () => { document.getElementById('fileModal').style.display = 'none'; };
@@ -387,14 +592,21 @@
     }
   };
 
-  // 폴더별 보기
+  // 폴더별 보기 (관리자: 전체 업로더 / 일반 사용자: 현재 선택된 그룹 소속 계정만)
   async function loadFolders() {
-    const querySnapshot = await getDocs(collection(db, "files"));
-    const uploaders = new Set();
-    querySnapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data.uploader) uploaders.add(data.uploader);
-    });
+    let uploaders = new Set();
+
+    if (isAdminGlobal) {
+      const querySnapshot = await getDocs(collection(db, "files"));
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.uploader) uploaders.add(data.uploader);
+      });
+    } else if (selectedGroup) {
+      uploaders = new Set(selectedGroup.members || []);
+    } else {
+      uploaders = new Set([currentUserId]);
+    }
 
     const folderGrid = document.getElementById('folderGrid');
     folderGrid.innerHTML = '';
@@ -418,7 +630,11 @@
     document.getElementById('folderDetailView').classList.remove('hidden');
     document.getElementById('currentFolderName').innerText = `📁 ${username} 님의 폴더`;
 
-    const q = query(collection(db, "files"), where("uploader", "==", username));
+    const constraints = [where("uploader", "==", username)];
+    if (!isAdminGlobal && selectedGroup) {
+      constraints.push(where("group", "==", selectedGroup.id));
+    }
+    const q = query(collection(db, "files"), ...constraints);
     const querySnapshot = await getDocs(q);
     const userFiles = [];
     querySnapshot.forEach(docSnap => {
@@ -430,6 +646,104 @@
   window.backToFolders = () => {
     document.getElementById('folderDetailView').classList.add('hidden');
     document.getElementById('foldersView').classList.remove('hidden');
+  };
+
+  // ===== 관리자: 그룹 관리 =====
+
+  window.saveGroup = async () => {
+    const name = document.getElementById('groupNameInput').value.trim();
+    const membersRaw = document.getElementById('groupMembersInput').value.trim();
+    if (!name || !membersRaw) return alert('그룹 이름과 소속 계정을 입력해주세요.');
+    const members = membersRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+    try {
+      if (editingGroupId) {
+        await setDoc(doc(db, "groups", editingGroupId), { name, members }, { merge: false });
+        alert('그룹이 수정되었습니다.');
+      } else {
+        await addDoc(collection(db, "groups"), { name, members });
+        alert('그룹이 생성되었습니다.');
+      }
+      cancelGroupEdit();
+      loadAllGroupsForAdmin();
+      // 관리자 본인도 그룹에 속해있을 수 있으니 그룹 탭 갱신
+      if (currentUserId) loadUserGroups(currentUserId);
+    } catch (e) {
+      alert('오류: ' + e.message);
+    }
+  };
+
+  window.cancelGroupEdit = () => {
+    editingGroupId = null;
+    document.getElementById('groupNameInput').value = '';
+    document.getElementById('groupMembersInput').value = '';
+  };
+
+  let groupsCache = [];
+
+  async function loadAllGroupsForAdmin() {
+    const snap = await getDocs(collection(db, "groups"));
+    groupsCache = [];
+    snap.forEach(d => groupsCache.push({ id: d.id, ...d.data() }));
+
+    const container = document.getElementById('groupListContainer');
+    container.innerHTML = '';
+    if (groupsCache.length === 0) {
+      container.innerHTML = '<p>아직 생성된 그룹이 없습니다.</p>';
+      return;
+    }
+    groupsCache.forEach(g => {
+      const row = document.createElement('div');
+      row.className = 'group-row';
+      const membersText = (g.members || []).join(', ') || '(소속 계정 없음)';
+      row.innerHTML = `
+        <div><strong style="color:#38bdf8;">${g.name}</strong><br><span style="color:#94a3b8; font-size:0.85rem;">${membersText}</span></div>
+        <div style="display:flex; gap:6px;">
+          <button onclick="editGroup('${g.id}')">수정</button>
+          <button class="danger" onclick="deleteGroup('${g.id}')">삭제</button>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  window.editGroup = (id) => {
+    const g = groupsCache.find(gr => gr.id === id);
+    if (!g) return;
+    document.getElementById('groupNameInput').value = g.name;
+    document.getElementById('groupMembersInput').value = (g.members || []).join(',');
+    editingGroupId = id;
+  };
+
+  window.deleteGroup = async (id) => {
+    if (!confirm('그룹을 삭제하시겠습니까?\n(이미 이 그룹으로 업로드된 파일은 삭제되지 않지만, 더 이상 어떤 그룹 탭에서도 조회되지 않습니다.)')) return;
+    try {
+      await deleteDoc(doc(db, "groups", id));
+      loadAllGroupsForAdmin();
+      if (currentUserId) loadUserGroups(currentUserId);
+    } catch (e) {
+      alert('삭제 실패: ' + e.message);
+    }
+  };
+
+  // ===== 관리자: 서버(폰) 상태 =====
+
+  window.loadServerStatus = async () => {
+    const el = document.getElementById('serverStatusContent');
+    el.innerText = '불러오는 중...';
+    try {
+      const res = await fetch(`${PHONE_SERVER_URL}/status`);
+      if (!res.ok) throw new Error(`상태 코드 ${res.status}`);
+      const s = await res.json();
+      el.innerHTML = `
+        💾 저장공간: ${s.storage_free ?? '정보 없음'} 남음 / 전체 ${s.storage_total ?? '?'}<br>
+        📶 와이파이: ${s.wifi_ssid ?? '연결 정보 없음'} (신호 세기: ${s.wifi_signal ?? '-'})<br>
+        🔋 배터리: ${s.battery_percentage != null ? s.battery_percentage + '%' : '정보 없음'} ${s.battery_status ? '(' + s.battery_status + ')' : ''}<br>
+        🌡️ 온도: ${s.temperature ?? '이 기기/서버에서는 확인할 수 없음'}
+      `;
+    } catch (e) {
+      el.innerHTML = `상태 정보를 가져올 수 없습니다 (${e.message}).<br>Termux 서버(server.py)에 <code>/status</code> 라우트를 추가해야 합니다.`;
+    }
   };
 </script>
 
