@@ -589,9 +589,26 @@
 
   // 삭제 기능
   window.deleteCurrentFile = async () => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (!confirm("정말 삭제하시겠습니까? (폰에 저장된 실제 파일도 함께 삭제됩니다)")) return;
+    const fileToDelete = currentModalFile;
     try {
-      await deleteDoc(doc(db, "files", currentModalFile.id));
+      // 1) 폰(Termux 서버)에 실제 파일 삭제 요청
+      //    서버가 꺼져있거나 삭제 라우트가 아직 없을 수도 있으니, 실패해도 목록 삭제는 계속 진행하고 사용자에게 알림만 띄운다.
+      try {
+        const delResp = await fetch(`${PHONE_SERVER_URL}/files/${encodeURIComponent(fileToDelete.name)}`, {
+          method: 'DELETE'
+        });
+        if (!delResp.ok) {
+          console.warn('폰 서버에서 파일 삭제 실패:', delResp.status);
+          alert('주의: 폰에 저장된 실제 파일 삭제에는 실패했습니다 (서버 응답: ' + delResp.status + '). 목록에서는 삭제됩니다.');
+        }
+      } catch (phoneErr) {
+        console.warn('폰 서버 삭제 요청 실패:', phoneErr);
+        alert('주의: 폰 서버에 연결할 수 없어 실제 파일은 삭제되지 않았습니다 (Termux 서버/터널이 켜져 있는지 확인하세요). 목록에서는 삭제됩니다.');
+      }
+
+      // 2) Firestore 기록 삭제
+      await deleteDoc(doc(db, "files", fileToDelete.id));
       closeModalDirect();
       loadInitialFiles();
     } catch (e) {
