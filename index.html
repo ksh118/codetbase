@@ -117,6 +117,7 @@
       <div class="progress-container" id="progressContainer">
         <div class="progress-bar" id="progressBar"></div>
       </div>
+      <p id="progressText" style="display:none; margin-top:6px; font-size:0.85rem; color:#38bdf8;"></p>
     </div>
 
     <div id="allFilesView">
@@ -338,6 +339,38 @@
     return { device, gps };
   }
 
+  // XMLHttpRequest를 Promise로 감싸서 실시간 업로드 진행률(%)을 받아옴
+  // (fetch는 업로드 진행률 이벤트를 제공하지 않기 때문에 XHR을 사용)
+  function uploadWithProgress(url, formData, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch (e) {
+            reject(new Error('서버 응답을 해석할 수 없습니다.'));
+          }
+        } else {
+          reject(new Error(`서버 응답 코드 ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('네트워크 오류로 업로드에 실패했습니다.'));
+
+      xhr.send(formData);
+    });
+  }
+
   // 스마트폰 저장소(shttps)로 직접 파일 업로드
   window.uploadFile = async () => {
     const fileInput = document.getElementById('fileInput');
@@ -358,28 +391,30 @@
 
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
     progressContainer.style.display = 'block';
-    progressBar.style.width = '15%';
+    progressText.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.innerText = '업로드 준비 중... (사진 정보 확인 중)';
 
     // 사진에서 촬영 기기 / 위치 정보(EXIF) 추출
     const photoMeta = await extractPhotoMeta(file);
-    progressBar.style.width = '30%';
 
     try {
-      const response = await fetch(`${PHONE_SERVER_URL}/upload`, {
-        method: 'POST',
-        body: formData
-      });
+      const result = await uploadWithProgress(
+        `${PHONE_SERVER_URL}/upload`,
+        formData,
+        (percent) => {
+          progressBar.style.width = percent + '%';
+          progressText.innerText = `업로드 중... ${percent}%`;
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(`서버 응답 코드 ${response.status}`);
-      }
-
-      const result = await response.json();
       const savedName = result.name;
       const fileUrl = `${PHONE_SERVER_URL}/files/${encodeURIComponent(savedName)}`;
 
       progressBar.style.width = '100%';
+      progressText.innerText = '완료 처리 중...';
 
       await addDoc(collection(db, "files"), {
         name: savedName,
@@ -391,6 +426,7 @@
         createdAt: Date.now()
       });
 
+      progressText.innerText = '업로드 완료!';
       alert("스마트폰 저장소로 파일 업로드가 완료되었습니다!");
       loadInitialFiles();
     } catch (error) {
@@ -398,7 +434,9 @@
     } finally {
       setTimeout(() => {
         progressContainer.style.display = 'none';
+        progressText.style.display = 'none';
         progressBar.style.width = '0%';
+        progressText.innerText = '';
         fileInput.value = '';
       }, 500);
     }
