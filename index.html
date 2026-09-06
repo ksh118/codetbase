@@ -251,6 +251,9 @@
     try {
       const response = await fetch(`${PHONE_SERVER_URL}/upload`, {
         method: 'POST',
+        headers: {
+          'localtonet-skip-warning': 'true'
+        },
         body: formData
       });
 
@@ -275,7 +278,7 @@
       alert("스마트폰 저장소로 파일 업로드가 완료되었습니다!");
       loadInitialFiles();
     } catch (error) {
-      alert(`스마트폰 서버 전송 실패 (${error.message}). Termux에서 python server.py 창이 켜져 있는지, Localtonet 터널이 8080 포트로 켜져 있는지 확인하세요.`);
+      alert(`스마트폰 서버 전송 실패 (${error.message}). Termux에서 python server.py 창이 켜져 있는지, Localtonet 터널이 8095 포트로 켜져 있는지 확인하세요.`);
     } finally {
       setTimeout(() => {
         progressContainer.style.display = 'none';
