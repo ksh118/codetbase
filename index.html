@@ -261,7 +261,7 @@
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import {
-    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit, startAfter, where
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, query, orderBy, limit, startAfter, where
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   import * as exifr from "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs";
 
@@ -284,8 +284,22 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // 스마트폰 연결 주소 (Localtonet / Cloudflare Tunnel)
-  const PHONE_SERVER_URL = "https://apparent-evening-when-exec.trycloudflare.com";
+  // 스마트폰 연결 주소는 Firestore(config/server 문서)에 저장해두고 여기서 불러옵니다.
+  // 관리자 페이지(admin.html)에서 주소를 바꾸면 코드 재배포 없이 여기도 자동 반영됩니다.
+  // 아래 값은 Firestore에 아직 아무 값도 없을 때만 쓰이는 비상용 기본값입니다.
+  let PHONE_SERVER_URL = "https://carpentry-kitchen-crafter.ngrok-free.dev";
+
+  async function loadServerUrlFromFirestore() {
+    try {
+      const snap = await getDoc(doc(db, "config", "server"));
+      if (snap.exists() && snap.data().url) {
+        PHONE_SERVER_URL = snap.data().url;
+      }
+    } catch (e) {
+      console.error("서버 주소 로딩 실패, 기본값 사용:", e);
+    }
+  }
+  const serverUrlReadyPromise = loadServerUrlFromFirestore();
 
   const DOMAIN = "@codetbase.com";
   const ADMIN_EMAILS = ["admin@codetbase.com", "admin"];
@@ -328,6 +342,7 @@
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
+      await serverUrlReadyPromise;
       document.getElementById('loginCard').style.display = 'none';
       document.getElementById('dashboard').style.display = 'flex';
       const userId = user.email.split('@')[0];
@@ -726,22 +741,22 @@
 
   // 삭제 기능
   window.deleteCurrentFile = async () => {
-    if (!confirm("정말 삭제하시겠습니까? (파일이 완전히 삭제됩니다.)")) return;
+    if (!confirm("정말 삭제하시겠습니까? (폰에 저장된 실제 파일도 함께 삭제됩니다)")) return;
     const fileToDelete = currentModalFile;
     try {
-      // 1) (서버)에 실제 파일 삭제 요청
+      // 1) 폰(Termux 서버)에 실제 파일 삭제 요청
       //    서버가 꺼져있거나 삭제 라우트가 아직 없을 수도 있으니, 실패해도 목록 삭제는 계속 진행하고 사용자에게 알림만 띄운다.
       try {
         const delResp = await fetch(`${PHONE_SERVER_URL}/files/${encodeURIComponent(fileToDelete.name)}`, {
           method: 'DELETE'
         });
         if (!delResp.ok) {
-          console.warn('서버에서 파일 삭제 실패:', delResp.status);
-          alert('주의: 저장된 실제 파일 삭제에는 실패했습니다 (서버 응답: ' + delResp.status + '). 목록에서는 삭제됩니다.');
+          console.warn('폰 서버에서 파일 삭제 실패:', delResp.status);
+          alert('주의: 폰에 저장된 실제 파일 삭제에는 실패했습니다 (서버 응답: ' + delResp.status + '). 목록에서는 삭제됩니다.');
         }
       } catch (phoneErr) {
-        console.warn('서버 삭제 요청 실패:', phoneErr);
-        alert('주의: 서버에 연결할 수 없어 실제 파일은 삭제되지 않았습니다 (Termux 서버/터널이 켜져 있는지 확인하세요). 목록에서는 삭제됩니다.');
+        console.warn('폰 서버 삭제 요청 실패:', phoneErr);
+        alert('주의: 폰 서버에 연결할 수 없어 실제 파일은 삭제되지 않았습니다 (Termux 서버/터널이 켜져 있는지 확인하세요). 목록에서는 삭제됩니다.');
       }
 
       // 2) Firestore 기록 삭제
