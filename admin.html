@@ -106,6 +106,16 @@
     </div>
 
     <div class="panel">
+      <h3>🔗 스마트폰 서버 주소 설정</h3>
+      <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:12px;">Cloudflare 터널 등으로 서버를 새로 켤 때마다 바뀌는 주소를 여기서 등록하면, index.html / admin.html 코드를 다시 배포하지 않아도 자동으로 반영됩니다.</p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" id="serverUrlInput" placeholder="예: https://xxxxx.trycloudflare.com" style="flex: 1; min-width: 260px;">
+        <button onclick="saveServerUrl()" style="width: auto; padding: 0 20px; margin-top: 0;">저장</button>
+      </div>
+      <p id="serverUrlCurrent" style="color:#64748b; font-size:0.8rem; margin-top:10px;">현재 저장된 주소 확인 중...</p>
+    </div>
+
+    <div class="panel">
       <h3>📱 서버(폰) 상태</h3>
       <div id="serverStatusContent" style="color:#94a3b8; font-size:0.9rem; line-height:1.6;">불러오는 중...</div>
       <button class="secondary" style="width: auto; padding: 6px 14px; margin-top: 10px;" onclick="loadServerStatus()">새로고침</button>
@@ -118,7 +128,7 @@
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import {
-    getFirestore, collection, addDoc, setDoc, getDocs, deleteDoc, doc, query, where
+    getFirestore, collection, addDoc, setDoc, getDoc, getDocs, deleteDoc, doc, query, where
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   // ⚠️ 이 파일(admin.html)은 관리자 전용 콘솔입니다.
@@ -139,8 +149,43 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // 스마트폰 연결 주소 (Localtonet / Cloudflare Tunnel) - index.html 과 동일한 값으로 유지해주세요.
-  const PHONE_SERVER_URL = "https://apparent-evening-when-exec.trycloudflare.com";
+  // 스마트폰 연결 주소는 Firestore(config/server 문서)에 저장해두고 여기서 불러옵니다.
+  // 아래 값은 Firestore에 아직 아무 값도 없을 때만 쓰이는 비상용 기본값입니다.
+  let PHONE_SERVER_URL = "https://carpentry-kitchen-crafter.ngrok-free.dev";
+
+  async function loadServerUrlFromFirestore() {
+    try {
+      const snap = await getDoc(doc(db, "config", "server"));
+      if (snap.exists() && snap.data().url) {
+        PHONE_SERVER_URL = snap.data().url;
+      }
+    } catch (e) {
+      console.error("서버 주소 로딩 실패, 기본값 사용:", e);
+    }
+    const el = document.getElementById('serverUrlCurrent');
+    const inputEl = document.getElementById('serverUrlInput');
+    if (el) el.innerText = `현재 저장된 주소: ${PHONE_SERVER_URL}`;
+    if (inputEl) inputEl.placeholder = PHONE_SERVER_URL;
+  }
+  const serverUrlReadyPromise = loadServerUrlFromFirestore();
+
+  window.saveServerUrl = async () => {
+    const input = document.getElementById('serverUrlInput');
+    let newUrl = input.value.trim();
+    if (!newUrl) return alert("주소를 입력해주세요.");
+    // 끝에 슬래시(/)가 붙어있으면 제거 (업로드/삭제 URL 조합 시 이중 슬래시 방지)
+    newUrl = newUrl.replace(/\/+$/, '');
+    try {
+      await setDoc(doc(db, "config", "server"), { url: newUrl, updatedAt: Date.now() });
+      PHONE_SERVER_URL = newUrl;
+      document.getElementById('serverUrlCurrent').innerText = `현재 저장된 주소: ${PHONE_SERVER_URL}`;
+      input.value = '';
+      alert("서버 주소가 저장되었습니다. index.html에서도 자동으로 이 주소를 사용합니다.");
+      loadServerStatus();
+    } catch (e) {
+      alert("저장 실패: " + e.message);
+    }
+  };
 
   const DOMAIN = "@codetbase.com";
   const ADMIN_EMAILS = ["admin@codetbase.com", "admin"];
@@ -190,6 +235,7 @@
 
     loadAllAccounts();
     loadAllGroupsForAdmin();
+    await serverUrlReadyPromise;
     loadServerStatus();
   });
 
